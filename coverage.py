@@ -1,5 +1,4 @@
 import sys
-import trace
 import inspect
 import ast
 import os
@@ -64,7 +63,7 @@ class Coverage:
                 fmt = '%s%2d  %s' % (ind, lineno, src[lineno - start_ln].rstrip())
                 txt += fmt + '\n'
         return txt
-    
+
 def count_statements(node):
     # this function counts statement nodes in the AST
     count = 0
@@ -84,81 +83,58 @@ def total_statements(filename):
     return count_statements(tree)
 
 
-# def execute_script_with_input(script_path, input_path):
-#     # Step 1: Read the script content
-#     with open(script_path, 'r') as file:
-#         script_content = file.read()
+def get_path_files(path: str, filetype_filter: str = "in") -> list[str]:
+    if os.path.isdir(path):
+        import glob
+        slash = "/" if path[-1] != '/' else ""
+        glob_str = path + slash + r"*." + filetype_filter
 
-#     # Step 3: Read the input content
-#     with open(input_path, 'r') as file:
-#         # Assuming the input file contains a single integer on the first line
-#         input_value = int(file.readline().strip())
-
-#     # Step 2: Prepare the local environment
-#     # Assume `script.py` contains a function call like `factorial(input_value)`
-#     # We will replace `input_value` in the script with the actual input
-#     local_vars = {}
-#     global_vars = {}
-
-#     # Injecting the input value into the script
-#     # This assumes that the script is expecting a variable named 'input_value'
-#     local_vars['input_value'] = input_value
-
-#     # Step 4: Execute the script
-#     exec(script_content, global_vars, local_vars)
+        return glob.glob(glob_str)
+    else:
+        pass
 
 
+def execute_script_with_input(script_path: str, input_path: str):
+    with open(script_path, 'r') as file:
+        script_content = file.read()
 
-# def execute_script_with_input(script_path, input_path, coverage_instance):
-#     # Step 1: Read the script content
-#     with open(script_path, 'r') as file:
-#         script_content = file.read()
-
-#     # Step 3: Read the input content
-#     with open(input_path, 'r') as file:
-#         input_value = int(file.readline().strip())  # Assuming the input is an integer
-
-#     # Prepare the local and global environment
-#     local_vars = {'input_value': input_value}
-#     global_vars = globals().copy()  # Get a copy of global environment
-
-#     # Include the Coverage instance in the execution environment
-#     global_vars['cov'] = coverage_instance
-
-#     # Setting the trace function to this instance's traceit method
-#     old_trace = sys.gettrace()  # Preserve the old trace function
-#     sys.settrace(cov.traceit)  # Set the new trace function
-
-#     try:
-#         # Step 4: Execute the script
-#         exec(script_content, global_vars, local_vars)
-#     finally:
-#         # Restore the original trace function after execution
-#         sys.settrace(old_trace)
+    for input_file in get_path_files(input_path):
+        print(script_content)
+        exec_program(script_content, input_file)
 
 
-# extract tokens from command line
-python_script = sys.argv[1]
-input_dir = sys.argv[2]
+def exec_program(program: str, input_file: str):
+    print(input_file)
+    with open(input_file, 'r') as file:
+        # Assuming the input file contains a single integer on the first line
+        input_value = int(file.readline().strip())
 
-# extracting files from dir
-files = os.listdir(input_dir)
-file_in_dir = os.path.join(input_dir, files[0])
-total_statement = total_statements(file_in_dir)
+        with Coverage() as cov:
+            local_vars = {'input_value': input_value}
+            global_vars = globals().copy()  # Get a copy of global environment
+
+            # Include the Coverage instance in the execution environment
+            global_vars['cov'] = cov
+
+            # Setting the trace function to this instance's traceit method
+            old_trace = sys.gettrace()  # Preserve the old trace function
+            sys.settrace(cov.traceit)  # Set the new trace function
+
+            # execute_script_with_input(python_script, file_in_dir, cov)
+            exec(program, global_vars)
+
+            print(cov.coverage())
+
 
 # # understand the coverage
 # with Coverage() as cov:
-#     # execute_script_with_input(python_script, file_in_dir, cov)
 #     exec(open(python_script).read(), globals())
 
 # coverage_done = cov.coverage
 # print(coverage_done)
 
-import factorial
-with Coverage() as cov:
-    factorial.factorial(3)
-print(cov.coverage())
-print(len(cov.coverage()))
-print(total_statements(python_script))
+python_script = sys.argv[1]
+input_dir = sys.argv[2]
+execute_script_with_input(python_script, input_dir)
 
-print(f"Statement Coverage: {(len(cov.coverage())/total_statements(python_script))*100:.2f}%")
+#print(f"Statement Coverage: {(len(cov.coverage())/total_statements(python_script))*100:.2f}%")
