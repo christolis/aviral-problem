@@ -5,48 +5,48 @@ import ast
 import os
 
 class Coverage:
+  """
+  A simple coverage analysis tool that hooks into the Python trace framework
+  to record which lines of code are executed during the runtime of a script.
+  """
+  def __init__(self) -> None:
     """
-    A simple coverage analysis tool that hooks into the Python trace framework
-    to record which lines of code are executed during the runtime of a script.
+    Initialises the Coverage instance with an empty trace list.
     """
-    def __init__(self) -> None:
-        """
-        Initialises the Coverage instance with an empty trace list.
-        """
-        self.trace = []
+    self.trace = []
 
-    def traceit(self, frame, event, arg):
-        """
-        Trace function called by sys.settrace for each event.
-        """
-        if self.orig_trace is not None:
-            self.orig_trace(frame, event, arg)
-        if event == "line":
-            fi = inspect.getframeinfo(frame)
-            name, num = fi.function, fi.lineno
-            if name != '__exit__':
-                self.trace.append((name, num))
-        return self.traceit
+  def traceit(self, frame, event, arg):
+    """
+    Trace function called by sys.settrace for each event.
+    """
+    if self.orig_trace is not None:
+      self.orig_trace(frame, event, arg)
+    if event == "line":
+      fi = inspect.getframeinfo(frame)
+      name, num = fi.function, fi.lineno
+      if name != '__exit__':
+        self.trace.append((name, num))
+    return self.traceit
 
-    def __enter__(self):
-        """
-        Sets the trace function to this instance's traceit method.
-        """
-        self.orig_trace = sys.gettrace()
-        sys.settrace(self.traceit)
-        return self
+  def __enter__(self):
+    """
+    Sets the trace function to this instance's traceit method.
+    """
+    self.orig_trace = sys.gettrace()
+    sys.settrace(self.traceit)
+    return self
 
-    def __exit__(self, exc_type, exc_value, tb):
-        """
-        Restores the original trace function upon exiting the context.
-        """
-        sys.settrace(self.orig_trace)
+  def __exit__(self, exc_type, exc_value, tb):
+    """
+    Restores the original trace function upon exiting the context.
+    """
+    sys.settrace(self.orig_trace)
 
-    def coverage(self):
-        """
-        Returns a set of tuples representing the covered lines.
-        """
-        return set(self.trace)
+  def coverage(self):
+    """
+    Returns a set of tuples representing the covered lines.
+    """
+    return set(self.trace)
 
     def __repr__(self) -> str:
         """
@@ -66,22 +66,22 @@ class Coverage:
         return txt
     
 def count_statements(node):
-    # this function counts statement nodes in the AST
-    count = 0
-    # check if the node itself is a statement
-    if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.For, ast.While, ast.If, ast.With, ast.Try, ast.ExceptHandler, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Return, ast.Delete, ast.Raise, ast.Assert, ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal, ast.Pass, ast.Break, ast.Continue)):
-        count += 1
-    # recursively count statements in the children nodes
-    for child in ast.iter_child_nodes(node):
-        count += count_statements(child)
-    return count
+  # this function counts statement nodes in the AST
+  count = 0
+  # check if the node itself is a statement
+  if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.For, ast.While, ast.If, ast.With, ast.Try, ast.ExceptHandler, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Return, ast.Delete, ast.Raise, ast.Assert, ast.Import, ast.ImportFrom, ast.Global, ast.Nonlocal, ast.Pass, ast.Break, ast.Continue)):
+    count += 1
+  # recursively count statements in the children nodes
+  for child in ast.iter_child_nodes(node):
+    count += count_statements(child)
+  return count
 
 def total_statements(filename):
-    with open(filename, "r") as source:
-        # parse the source code into an AST
-        tree = ast.parse(source.read())
-    # count the statements in the AST
-    return count_statements(tree)
+  with open(filename, "r") as source:
+  # parse the source code into an AST
+      tree = ast.parse(source.read())
+  # count the statements in the AST
+  return count_statements(tree)
 
 
 # def execute_script_with_input(script_path, input_path):
